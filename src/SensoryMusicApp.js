@@ -930,11 +930,39 @@ const SensoryAudioLibrary = () => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isPlaying, currentTrack, filteredTracks, isRepeating]);
+  // スクロールバー設定
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `
+    html, body {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 20px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #333;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #666;
+      border-radius: 10px;
+    }
+  `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
     <div
-      className={`bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white min-h-screen ${
-        currentTrack ? "pb-20 md:pb-32" : ""
+      className={`bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white min-h-screen overflow-x-hidden ${
+        currentTrack ? "pb-32 md:pb-40" : ""
       }`}
     >
       <audio ref={audioRef} />
@@ -1539,7 +1567,7 @@ const SensoryAudioLibrary = () => {
       {/* Bottom Player */}
       {currentTrack && (
         <div
-          className={`fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-gray-600 transition-all duration-300 z-40 ${
+          className={`fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-gray-600 transition-all duration-300 z-50 ${
             isPlayerMinimized ? "p-3 md:p-2" : "p-4"
           }`}
         >
