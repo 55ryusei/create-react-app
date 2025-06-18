@@ -11,6 +11,11 @@ import {
   SkipForward,
   Menu,
   X,
+  Heart,
+  Plus,
+  List,
+  Trash2,
+  Edit3,
 } from "lucide-react";
 
 const SensoryAudioLibrary = () => {
@@ -22,23 +27,6 @@ const SensoryAudioLibrary = () => {
     return `/audio/${fileName}`;
   };
 
-  // 利用可能なMP3ファイル（audioフォルダに配置されているファイル）
-  const audioFiles = [
-    "ocean-waves-250310.mp3",
-    "ocean-waves-112906.mp3",
-    "sound-effect-seagulls-157829.mp3",
-    "water-333590.mp3",
-    "birds-june-17th-2025-361476.mp3",
-    "forrest-field-spring-sounds-5858.mp3",
-    "forrest-birds-rustling-leaves-skodsborg02-tbb-67249.mp3",
-    "crickets-chirping-with-other-bugs-27217.mp3",
-    "calming-rain-257596.mp3",
-    "heavy-wind-storm-326096.mp3",
-    "rain-and-little-storm-298087.mp3",
-    "lightning-soundscape-52896.mp3",
-    "lightning-237994.mp3",
-  ];
-
   const [tracks, setTracks] = useState([
     // 海・川・水カテゴリー
     {
@@ -48,6 +36,7 @@ const SensoryAudioLibrary = () => {
       duration: "3:24",
       category: "water",
       audioUrl: generateAudioPath("ocean-waves-250310.mp3"),
+      actualDuration: null,
     },
     {
       id: 2,
@@ -56,6 +45,7 @@ const SensoryAudioLibrary = () => {
       duration: "5:45",
       category: "water",
       audioUrl: generateAudioPath("ocean-waves-112906.mp3"),
+      actualDuration: null,
     },
     {
       id: 3,
@@ -64,6 +54,7 @@ const SensoryAudioLibrary = () => {
       duration: "2:45",
       category: "water",
       audioUrl: generateAudioPath("sound-effect-seagulls-157829.mp3"),
+      actualDuration: null,
     },
     {
       id: 4,
@@ -72,6 +63,7 @@ const SensoryAudioLibrary = () => {
       duration: "4:15",
       category: "water",
       audioUrl: generateAudioPath("water-333590.mp3"),
+      actualDuration: null,
     },
 
     // 森・動物・虫カテゴリー
@@ -82,6 +74,7 @@ const SensoryAudioLibrary = () => {
       duration: "5:12",
       category: "forest",
       audioUrl: generateAudioPath("birds-june-17th-2025-361476.mp3"),
+      actualDuration: null,
     },
     {
       id: 6,
@@ -90,6 +83,7 @@ const SensoryAudioLibrary = () => {
       duration: "6:30",
       category: "forest",
       audioUrl: generateAudioPath("forrest-field-spring-sounds-5858.mp3"),
+      actualDuration: null,
     },
     {
       id: 7,
@@ -100,6 +94,7 @@ const SensoryAudioLibrary = () => {
       audioUrl: generateAudioPath(
         "forrest-birds-rustling-leaves-skodsborg02-tbb-67249.mp3"
       ),
+      actualDuration: null,
     },
     {
       id: 8,
@@ -110,6 +105,7 @@ const SensoryAudioLibrary = () => {
       audioUrl: generateAudioPath(
         "crickets-chirping-with-other-bugs-27217.mp3"
       ),
+      actualDuration: null,
     },
 
     // 雨・嵐・雷カテゴリー
@@ -120,6 +116,7 @@ const SensoryAudioLibrary = () => {
       duration: "10:00",
       category: "storm",
       audioUrl: generateAudioPath("calming-rain-257596.mp3"),
+      actualDuration: null,
     },
     {
       id: 10,
@@ -128,6 +125,7 @@ const SensoryAudioLibrary = () => {
       duration: "4:33",
       category: "storm",
       audioUrl: generateAudioPath("heavy-wind-storm-326096.mp3"),
+      actualDuration: null,
     },
     {
       id: 11,
@@ -136,6 +134,7 @@ const SensoryAudioLibrary = () => {
       duration: "6:45",
       category: "storm",
       audioUrl: generateAudioPath("rain-and-little-storm-298087.mp3"),
+      actualDuration: null,
     },
     {
       id: 12,
@@ -144,6 +143,7 @@ const SensoryAudioLibrary = () => {
       duration: "3:30",
       category: "storm",
       audioUrl: generateAudioPath("lightning-soundscape-52896.mp3"),
+      actualDuration: null,
     },
     {
       id: 13,
@@ -152,6 +152,7 @@ const SensoryAudioLibrary = () => {
       duration: "2:15",
       category: "storm",
       audioUrl: generateAudioPath("lightning-237994.mp3"),
+      actualDuration: null,
     },
   ]);
 
@@ -167,49 +168,114 @@ const SensoryAudioLibrary = () => {
   const [isRepeating, setIsRepeating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // プレイリスト機能の状態
+  const [playlists, setPlaylists] = useState([
+    { id: "favorites", name: "お気に入り", tracks: [], isSystem: true },
+  ]);
+  const [favorites, setFavorites] = useState(new Set());
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
+  const [selectedTrackForPlaylist, setSelectedTrackForPlaylist] =
+    useState(null);
+  const [currentPlaylist, setCurrentPlaylist] = useState(null);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
+  const [editingPlaylistId, setEditingPlaylistId] = useState(null);
+  const [editingPlaylistName, setEditingPlaylistName] = useState("");
+
+  // ドラッグ状態
+  const [isDragging, setIsDragging] = useState(false);
+  const [isVolumeDragging, setIsVolumeDragging] = useState(false);
+
   const audioRef = useRef(null);
+  const progressRef = useRef(null);
+  const volumeRef = useRef(null);
 
   // 翻訳テキスト
   const translations = {
     jp: {
       title: "Sensory Music",
-      subtitle: "センサリープレイのための自然音コレクション",
+      subtitle: "センサリープレイのための音源コレクション",
       searchPlaceholder: "海、森、雨などで検索...",
       categories: "カテゴリー",
-      allSounds: "すべての曲",
-      water: "海・川・水の音",
-      forest: "森・動物・虫の音",
-      storm: "雨・嵐・雷の音",
+      allSounds: "すべての音源",
+      water: "海・川・水",
+      forest: "森・動物・虫",
+      storm: "雨・嵐・雷",
+      other: "その他",
       play: "再生",
-      title_col: "タイトル",
-      category_col: "カテゴリー",
-      time_col: "時間",
       natural: "自然音",
       noTracks: "該当する音源がありません",
       totalTracks: "音源数",
       highQuality: "高品質音源",
       loading: "読み込み中...",
       fileNotFound: "音源ファイルが見つかりません",
+      favorites: "お気に入り",
+      playlists: "プレイリスト",
+      createPlaylist: "新しいプレイリスト",
+      addToPlaylist: "プレイリストに追加",
+      removeFromFavorites: "お気に入りから削除",
+      addToFavorites: "お気に入りに追加",
+      deletePlaylist: "プレイリストを削除",
+      editPlaylist: "プレイリスト名を編集",
+      playlistName: "プレイリスト名",
+      create: "作成",
+      cancel: "キャンセル",
+      save: "保存",
+      delete: "削除",
+      noPlaylistTracks: "このプレイリストには音源がありません",
+      tracks: "音源",
+      localAudio: "ローカル音源",
+      // 既存のlocalAudio: "ローカル音源",の後に追加
+      repeatMode: "リピートモード",
+      repeatOn: "リピートオン",
+      repeatOff: "リピートオフ",
+      previous: "前の曲",
+      next: "次の曲",
+      highQualityAudio: "高品質音源",
+      removeFromPlaylist: "プレイリストから削除",
     },
     en: {
       title: "Sensory Music",
-      subtitle: "Natural sounds collection for sensory play activities",
+      subtitle: "Sounds collection for sensory play activities",
       searchPlaceholder: "Search for sea, forest, rain...",
       categories: "Categories",
-      allSounds: "All Songs",
+      allSounds: "All Sounds",
       water: "Sea & Water",
       forest: "Forest & Animals",
       storm: "Rain & Storm",
+      other: "Other",
       play: "Play",
-      title_col: "Title",
-      category_col: "Category",
-      time_col: "Duration",
       natural: "Natural Sounds",
       noTracks: "No matching audio files",
       totalTracks: "Total Tracks",
       highQuality: "High Quality",
       loading: "Loading...",
       fileNotFound: "Audio file not found",
+      favorites: "Favorites",
+      playlists: "Playlists",
+      createPlaylist: "New Playlist",
+      addToPlaylist: "Add to Playlist",
+      removeFromFavorites: "Remove from Favorites",
+      addToFavorites: "Add to Favorites",
+      deletePlaylist: "Delete Playlist",
+      editPlaylist: "Edit Playlist Name",
+      playlistName: "Playlist Name",
+      create: "Create",
+      cancel: "Cancel",
+      save: "Save",
+      delete: "Delete",
+      noPlaylistTracks: "No tracks in this playlist",
+      tracks: "tracks",
+      localAudio: "Local Audio",
+      // 既存のlocalAudio: "Local Audio",の後に追加
+      repeatMode: "Repeat Mode",
+      repeatOn: "Repeat On",
+      repeatOff: "Repeat Off",
+      previous: "Previous",
+      next: "Next",
+      highQualityAudio: "High Quality Audio",
+      removeFromPlaylist: "Remove from Playlist",
     },
   };
 
@@ -241,7 +307,65 @@ const SensoryAudioLibrary = () => {
       icon: "⛈️",
       gradient: "from-yellow-500 to-orange-500",
     },
+    {
+      id: "other",
+      name: t.other,
+      icon: "🎶",
+      gradient: "from-gray-500 to-gray-400",
+    },
   ];
+  // 言語変更時のお気に入りプレイリスト名更新
+  useEffect(() => {
+    setPlaylists((prevPlaylists) =>
+      prevPlaylists.map((playlist) =>
+        playlist.id === "favorites"
+          ? { ...playlist, name: t.favorites }
+          : playlist
+      )
+    );
+  }, [language, t.favorites]);
+  // 音源の事前読み込み（再生時間取得）
+  useEffect(() => {
+    const preloadAudioMetadata = async () => {
+      for (const track of tracks) {
+        if (!track.actualDuration) {
+          try {
+            const audio = new Audio();
+            await new Promise((resolve) => {
+              const handleLoadedMetadata = () => {
+                setTracks((prevTracks) =>
+                  prevTracks.map((t) =>
+                    t.id === track.id
+                      ? {
+                          ...t,
+                          actualDuration: audio.duration,
+                          duration: formatTime(audio.duration),
+                        }
+                      : t
+                  )
+                );
+                resolve();
+              };
+              const handleError = () => {
+                console.warn(`Failed to load metadata for ${track.title}`);
+                resolve(); // Continue with next track even on error
+              };
+
+              audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+              audio.addEventListener("error", handleError);
+              audio.src = track.audioUrl;
+            });
+          } catch (error) {
+            console.warn(`Failed to load metadata for ${track.title}:`, error);
+          }
+        }
+      }
+    };
+
+    // 少し遅延させて実行（初期レンダリングを優先）
+    const timer = setTimeout(preloadAudioMetadata, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // 言語に応じてトラック情報を取得
   const getLocalizedTrack = (track) => {
@@ -266,18 +390,148 @@ const SensoryAudioLibrary = () => {
     return track;
   };
 
+  // プレイリスト関数
+  const toggleFavorite = (trackId) => {
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(trackId)) {
+      newFavorites.delete(trackId);
+    } else {
+      newFavorites.add(trackId);
+    }
+    setFavorites(newFavorites);
+
+    // お気に入りプレイリストも更新
+    setPlaylists((prevPlaylists) =>
+      prevPlaylists.map((playlist) =>
+        playlist.id === "favorites"
+          ? {
+              ...playlist,
+              tracks: newFavorites.has(trackId)
+                ? [...playlist.tracks, trackId]
+                : playlist.tracks.filter((id) => id !== trackId),
+            }
+          : playlist
+      )
+    );
+  };
+
+  const createPlaylist = () => {
+    if (newPlaylistName.trim()) {
+      const newPlaylist = {
+        id: Date.now().toString(),
+        name: newPlaylistName.trim(),
+        tracks: selectedTrackForPlaylist ? [selectedTrackForPlaylist] : [],
+        isSystem: false,
+      };
+      setPlaylists((prev) => [...prev, newPlaylist]);
+      setNewPlaylistName("");
+      setIsCreatingPlaylist(false);
+      setShowCreatePlaylistModal(false);
+      if (selectedTrackForPlaylist) {
+        setShowPlaylistModal(false);
+        setSelectedTrackForPlaylist(null);
+      }
+    }
+  };
+
+  const addToPlaylist = (playlistId, trackId) => {
+    setPlaylists((prevPlaylists) =>
+      prevPlaylists.map((playlist) =>
+        playlist.id === playlistId
+          ? {
+              ...playlist,
+              tracks: playlist.tracks.includes(trackId)
+                ? playlist.tracks
+                : [...playlist.tracks, trackId],
+            }
+          : playlist
+      )
+    );
+    setShowPlaylistModal(false);
+    setSelectedTrackForPlaylist(null);
+  };
+
+  const removeFromPlaylist = (playlistId, trackId) => {
+    setPlaylists((prevPlaylists) =>
+      prevPlaylists.map((playlist) =>
+        playlist.id === playlistId
+          ? {
+              ...playlist,
+              tracks: playlist.tracks.filter((id) => id !== trackId),
+            }
+          : playlist
+      )
+    );
+
+    if (playlistId === "favorites") {
+      const newFavorites = new Set(favorites);
+      newFavorites.delete(trackId);
+      setFavorites(newFavorites);
+    }
+  };
+
+  const deletePlaylist = (playlistId) => {
+    if (!playlists.find((p) => p.id === playlistId)?.isSystem) {
+      setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
+      if (currentPlaylist === playlistId) {
+        setCurrentPlaylist(null);
+        setSelectedCategory("all");
+      }
+    }
+  };
+
+  const editPlaylistName = (playlistId, newName) => {
+    if (newName.trim()) {
+      setPlaylists((prevPlaylists) =>
+        prevPlaylists.map((playlist) =>
+          playlist.id === playlistId
+            ? { ...playlist, name: newName.trim() }
+            : playlist
+        )
+      );
+    }
+    setEditingPlaylistId(null);
+    setEditingPlaylistName("");
+  };
+
   // フィルタリングされたトラック
-  const filteredTracks = tracks.filter((track) => {
-    const localizedTrack = getLocalizedTrack(track);
-    const matchesSearch =
-      localizedTrack.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      track.category.toLowerCase().includes(searchQuery.toLowerCase());
+  const getFilteredTracks = () => {
+    let filteredTracks = tracks;
 
-    const matchesCategory =
-      selectedCategory === "all" || track.category === selectedCategory;
+    // プレイリスト表示の場合
+    if (currentPlaylist) {
+      const playlist = playlists.find((p) => p.id === currentPlaylist);
+      if (playlist) {
+        filteredTracks = tracks.filter((track) =>
+          playlist.tracks.includes(track.id)
+        );
+      }
+    } else {
+      // カテゴリーフィルター
+      if (selectedCategory !== "all") {
+        filteredTracks = tracks.filter(
+          (track) => track.category === selectedCategory
+        );
+      }
+    }
 
-    return matchesSearch && matchesCategory;
-  });
+    // 検索フィルター
+    if (searchQuery) {
+      filteredTracks = filteredTracks.filter((track) => {
+        const localizedTrack = getLocalizedTrack(track);
+        return (
+          localizedTrack.title
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          track.category.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      });
+    }
+
+    return filteredTracks;
+  };
+
+  const filteredTracks = getFilteredTracks();
 
   // 時間フォーマット
   const formatTime = (time) => {
@@ -297,7 +551,17 @@ const SensoryAudioLibrary = () => {
 
   const selectCategory = (categoryId) => {
     setSelectedCategory(categoryId);
+    setCurrentPlaylist(null);
     // スマホでカテゴリ選択後はサイドバーを閉じる
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  };
+
+  const selectPlaylist = (playlistId) => {
+    setCurrentPlaylist(playlistId);
+    setSelectedCategory("all");
+    // スマホでプレイリスト選択後はサイドバーを閉じる
     if (window.innerWidth < 768) {
       setSidebarOpen(false);
     }
@@ -428,22 +692,97 @@ const SensoryAudioLibrary = () => {
     }
   };
 
-  const handleProgressClick = (e) => {
-    if (audioRef.current && duration) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const width = rect.width;
-      const newTime = (clickX / width) * duration;
+  // プログレスバーのクリック・ドラッグ処理
+  const getProgressFromEvent = (e) => {
+    if (!progressRef.current || !duration) return 0;
+
+    const rect = progressRef.current.getBoundingClientRect();
+    let clientX;
+
+    if (e.touches) {
+      clientX = e.touches[0].clientX;
+    } else {
+      clientX = e.clientX;
+    }
+
+    const clickX = clientX - rect.left;
+    const width = rect.width;
+    const progress = Math.max(0, Math.min(1, clickX / width));
+    return progress * duration;
+  };
+
+  const handleProgressStart = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const newTime = getProgressFromEvent(e);
+    if (audioRef.current) {
       audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
     }
+  };
+
+  const handleProgressMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const newTime = getProgressFromEvent(e);
+    if (audioRef.current) {
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  const handleProgressEnd = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  // ボリュームバーのクリック・ドラッグ処理
+  const getVolumeFromEvent = (e) => {
+    if (!volumeRef.current) return 0;
+
+    const rect = volumeRef.current.getBoundingClientRect();
+    let clientX;
+
+    if (e.touches) {
+      clientX = e.touches[0].clientX;
+    } else {
+      clientX = e.clientX;
+    }
+
+    const clickX = clientX - rect.left;
+    const width = rect.width;
+    const progress = Math.max(0, Math.min(1, clickX / width));
+    return Math.round(progress * 100);
+  };
+
+  const handleVolumeStart = (e) => {
+    e.preventDefault();
+    setIsVolumeDragging(true);
+    const newVolume = getVolumeFromEvent(e);
+    setVolume(newVolume);
+  };
+
+  const handleVolumeMove = (e) => {
+    if (!isVolumeDragging) return;
+    e.preventDefault();
+    const newVolume = getVolumeFromEvent(e);
+    setVolume(newVolume);
+  };
+
+  const handleVolumeEnd = (e) => {
+    e.preventDefault();
+    setIsVolumeDragging(false);
   };
 
   // エフェクト
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) {
-      const updateTime = () => setCurrentTime(audio.currentTime || 0);
+      const updateTime = () => {
+        if (!isDragging) {
+          setCurrentTime(audio.currentTime || 0);
+        }
+      };
       const updateDuration = () => setDuration(audio.duration || 0);
       const handleEnded = () => {
         if (isRepeating && currentTrack) {
@@ -489,13 +828,49 @@ const SensoryAudioLibrary = () => {
         }
       };
     }
-  }, [currentTrack, isRepeating, filteredTracks]);
+  }, [currentTrack, isRepeating, filteredTracks, isDragging, isVolumeDragging]);
 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume / 100;
     }
   }, [volume]);
+
+  // ドラッグイベントリスナー
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      handleProgressMove(e);
+      handleVolumeMove(e);
+    };
+    const handleMouseUp = (e) => {
+      handleProgressEnd(e);
+      handleVolumeEnd(e);
+    };
+    const handleTouchMove = (e) => {
+      handleProgressMove(e);
+      handleVolumeMove(e);
+    };
+    const handleTouchEnd = (e) => {
+      handleProgressEnd(e);
+      handleVolumeEnd(e);
+    };
+
+    if (isDragging || isVolumeDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("touchmove", handleTouchMove, {
+        passive: false,
+      });
+      document.addEventListener("touchend", handleTouchEnd);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [isDragging, isVolumeDragging]);
 
   // コンポーネントアンマウント時のクリーンアップ
   useEffect(() => {
@@ -557,7 +932,11 @@ const SensoryAudioLibrary = () => {
   }, [isPlaying, currentTrack, filteredTracks, isRepeating]);
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white min-h-screen">
+    <div
+      className={`bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white min-h-screen ${
+        currentTrack ? "pb-20 md:pb-32" : ""
+      }`}
+    >
       <audio ref={audioRef} />
 
       {/* Hero Header */}
@@ -639,20 +1018,50 @@ const SensoryAudioLibrary = () => {
                 onClick={() => setSearchQuery("")}
                 className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <X className="w-4 h-4" />
               </button>
+            )}
+
+            {/* Create Playlist Modal */}
+            {showCreatePlaylistModal && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-gray-800 rounded-2xl max-w-md w-full overflow-hidden">
+                  <div className="p-4 border-b border-gray-600">
+                    <h3 className="text-lg font-semibold text-white">
+                      {t.createPlaylist}
+                    </h3>
+                  </div>
+                  <div className="p-4">
+                    <input
+                      type="text"
+                      placeholder={t.playlistName}
+                      value={newPlaylistName}
+                      onChange={(e) => setNewPlaylistName(e.target.value)}
+                      className="w-full bg-black/40 text-white placeholder-gray-400 rounded-lg py-3 px-4 mb-4 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      onKeyPress={(e) => e.key === "Enter" && createPlaylist()}
+                      autoFocus
+                    />
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={createPlaylist}
+                        className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-lg transition-colors font-medium"
+                        disabled={!newPlaylistName.trim()}
+                      >
+                        {t.create}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCreatePlaylistModal(false);
+                          setNewPlaylistName("");
+                        }}
+                        className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded-lg transition-colors font-medium"
+                      >
+                        {t.cancel}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -670,13 +1079,13 @@ const SensoryAudioLibrary = () => {
             </div>
             <div className="hidden sm:flex items-center space-x-2">
               <Volume2 className="w-4 h-4 text-blue-400" />
-              <span className="text-gray-200">ローカル音源</span>
+              <span className="text-gray-200">{t.localAudio}</span>
             </div>
             {isRepeating && (
               <div className="flex items-center space-x-2">
                 <Repeat className="w-4 h-4 text-purple-400" />
                 <span className="text-gray-200 hidden sm:inline">
-                  リピートモード
+                  {t.repeatMode}
                 </span>
               </div>
             )}
@@ -732,51 +1141,192 @@ const SensoryAudioLibrary = () => {
             </button>
           </div>
 
-          <div className="space-y-3">
-            <div className="hidden md:block text-gray-300 text-sm font-semibold mb-6 uppercase tracking-wider">
-              {t.categories}
-            </div>
-
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                className={`group cursor-pointer transition-all duration-300 ${
-                  selectedCategory === category.id
-                    ? "scale-105"
-                    : "hover:scale-102"
-                }`}
-                onClick={() => selectCategory(category.id)}
-              >
-                <div
-                  className={`bg-gradient-to-r ${
-                    category.gradient
-                  } p-3 md:p-4 rounded-2xl shadow-lg relative overflow-hidden border ${
-                    selectedCategory === category.id
-                      ? "ring-2 ring-white border-white/50"
-                      : "border-transparent"
-                  }`}
-                >
-                  <div className="absolute inset-0 bg-black/20"></div>
-                  <div className="relative flex items-center space-x-3">
-                    <div className="text-xl md:text-2xl drop-shadow-lg">
-                      {category.icon}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-white drop-shadow-md text-sm md:text-base">
-                        {category.name}
-                      </div>
-                      <div className="text-xs md:text-sm text-white/90 drop-shadow-md">
-                        {category.id === "all"
-                          ? tracks.length
-                          : tracks.filter((t) => t.category === category.id)
-                              .length}{" "}
-                        音源
+          <div className="space-y-6">
+            {/* Categories */}
+            <div>
+              <div className="hidden md:block text-gray-300 text-sm font-semibold mb-4 uppercase tracking-wider">
+                {t.categories}
+              </div>
+              <div className="space-y-3">
+                {categories.map((category) => (
+                  <div
+                    key={category.id}
+                    className={`group cursor-pointer transition-all duration-300 ${
+                      selectedCategory === category.id && !currentPlaylist
+                        ? "scale-105"
+                        : "hover:scale-102"
+                    }`}
+                    onClick={() => selectCategory(category.id)}
+                  >
+                    <div
+                      className={`bg-gradient-to-r ${
+                        category.gradient
+                      } p-3 md:p-4 rounded-2xl shadow-lg relative overflow-hidden border ${
+                        selectedCategory === category.id && !currentPlaylist
+                          ? "ring-2 ring-white border-white/50"
+                          : "border-transparent"
+                      }`}
+                    >
+                      <div className="absolute inset-0 bg-black/20"></div>
+                      <div className="relative flex items-center space-x-3">
+                        <div className="text-xl md:text-2xl drop-shadow-lg">
+                          {category.icon}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-white drop-shadow-md text-sm md:text-base">
+                            {category.name}
+                          </div>
+                          <div className="text-xs md:text-sm text-white/90 drop-shadow-md">
+                            {category.id === "all"
+                              ? tracks.length
+                              : tracks.filter((t) => t.category === category.id)
+                                  .length}{" "}
+                            {t.tracks}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Playlists */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-gray-300 text-sm font-semibold uppercase tracking-wider">
+                  {t.playlists}
+                </div>
+                <button
+                  onClick={() => setIsCreatingPlaylist(true)}
+                  className="bg-purple-600 hover:bg-purple-500 text-white rounded-full p-1.5 transition-all duration-300 hover:scale-110"
+                  title={t.createPlaylist}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+
+              {isCreatingPlaylist && (
+                <div className="mb-3 p-3 bg-black/40 rounded-xl border border-gray-600">
+                  <input
+                    type="text"
+                    placeholder={t.playlistName}
+                    value={newPlaylistName}
+                    onChange={(e) => setNewPlaylistName(e.target.value)}
+                    className="w-full bg-black/40 text-white placeholder-gray-400 rounded-lg py-2 px-3 mb-2 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
+                    onKeyPress={(e) => e.key === "Enter" && createPlaylist()}
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={createPlaylist}
+                      className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded-lg text-xs transition-colors"
+                    >
+                      {t.create}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsCreatingPlaylist(false);
+                        setNewPlaylistName("");
+                      }}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded-lg text-xs transition-colors"
+                    >
+                      {t.cancel}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {playlists.map((playlist) => (
+                  <div
+                    key={playlist.id}
+                    className={`group cursor-pointer transition-all duration-300 ${
+                      currentPlaylist === playlist.id
+                        ? "scale-105"
+                        : "hover:scale-102"
+                    }`}
+                  >
+                    <div
+                      className={`bg-gradient-to-r from-gray-700 to-gray-600 p-3 rounded-xl shadow-lg relative overflow-hidden border group-hover:from-gray-600 group-hover:to-gray-500 ${
+                        currentPlaylist === playlist.id
+                          ? "ring-2 ring-white border-white/50"
+                          : "border-transparent"
+                      }`}
+                      onClick={() => selectPlaylist(playlist.id)}
+                    >
+                      <div className="absolute inset-0 bg-black/20"></div>
+                      <div className="relative flex items-center justify-between">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className="text-lg drop-shadow-lg">
+                            {playlist.id === "favorites" ? "❤️" : "📁"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            {editingPlaylistId === playlist.id ? (
+                              <input
+                                type="text"
+                                value={editingPlaylistName}
+                                onChange={(e) =>
+                                  setEditingPlaylistName(e.target.value)
+                                }
+                                onKeyPress={(e) => {
+                                  if (e.key === "Enter") {
+                                    editPlaylistName(
+                                      playlist.id,
+                                      editingPlaylistName
+                                    );
+                                  }
+                                }}
+                                onBlur={() =>
+                                  editPlaylistName(
+                                    playlist.id,
+                                    editingPlaylistName
+                                  )
+                                }
+                                className="bg-black/40 text-white text-sm font-semibold w-full px-2 py-1 rounded focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            ) : (
+                              <div className="font-semibold text-white drop-shadow-md text-sm truncate">
+                                {playlist.name}
+                              </div>
+                            )}
+                            <div className="text-xs text-white/90 drop-shadow-md">
+                              {playlist.tracks.length} {t.tracks}
+                            </div>
+                          </div>
+                        </div>
+                        {!playlist.isSystem && (
+                          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingPlaylistId(playlist.id);
+                                setEditingPlaylistName(playlist.name);
+                              }}
+                              className="text-gray-300 hover:text-white p-1 rounded transition-colors"
+                              title={t.editPlaylist}
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deletePlaylist(playlist.id);
+                              }}
+                              className="text-gray-300 hover:text-red-400 p-1 rounded transition-colors"
+                              title={t.deletePlaylist}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -784,41 +1334,42 @@ const SensoryAudioLibrary = () => {
         <div className="flex-1 p-4 md:p-6">
           <div className="flex items-center justify-between mb-6 md:mb-8">
             <h2 className="text-xl md:text-3xl font-bold bg-gradient-to-r from-cyan-400 via-orange-400 to-purple-500 bg-clip-text text-transparent drop-shadow-lg leading-tight py-1">
-              {categories.find((c) => c.id === selectedCategory)?.name ||
-                t.allSounds}
+              {currentPlaylist
+                ? playlists.find((p) => p.id === currentPlaylist)?.name ||
+                  t.playlists
+                : categories.find((c) => c.id === selectedCategory)?.name ||
+                  t.allSounds}
             </h2>
             <div className="hidden md:flex items-center space-x-2 text-gray-300 bg-black/30 px-3 py-2 rounded-lg">
               <Volume2 className="w-5 h-5" />
-              <span className="text-sm">高品質音源</span>
+              <span className="text-sm">{t.highQualityAudio}</span>
             </div>
           </div>
 
-          {/* Track List */}
+          {/* Track List - ヘッダーなし */}
           <div className="space-y-2">
-            {/* Desktop Headers */}
-            <div className="hidden md:grid grid-cols-12 gap-4 text-sm text-gray-300 border-b border-gray-600 pb-3 mb-4 bg-black/20 px-4 py-2 rounded-lg">
-              <div className="col-span-1">#</div>
-              <div className="col-span-8">{t.title_col}</div>
-              <div className="col-span-2">{t.category_col}</div>
-              <div className="col-span-1">{t.time_col}</div>
-            </div>
-
             {filteredTracks.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
                 <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center">
-                  <Search className="w-10 h-10 md:w-12 md:h-12" />
+                  {currentPlaylist ? (
+                    <List className="w-10 h-10 md:w-12 md:h-12" />
+                  ) : (
+                    <Search className="w-10 h-10 md:w-12 md:h-12" />
+                  )}
                 </div>
-                <div className="text-lg md:text-xl mb-2">{t.noTracks}</div>
+                <div className="text-lg md:text-xl mb-2">
+                  {currentPlaylist ? t.noPlaylistTracks : t.noTracks}
+                </div>
               </div>
             ) : (
               filteredTracks.map((track, index) => {
                 const localizedTrack = getLocalizedTrack(track);
+                const isFavorited = favorites.has(track.id);
                 return (
                   <div
                     key={track.id}
                     className={`
-                      md:grid md:grid-cols-12 md:gap-4 
-                      flex flex-col 
+                      flex items-center
                       py-3 md:py-4 px-3 md:px-4 
                       rounded-xl hover:bg-black/40 cursor-pointer transition-all duration-300 group backdrop-blur-sm border 
                       ${
@@ -827,95 +1378,93 @@ const SensoryAudioLibrary = () => {
                           : "bg-black/20 border-transparent hover:border-gray-600"
                       }
                     `}
-                    onClick={() => playTrack(track)}
                   >
-                    {/* Mobile Layout */}
-                    <div className="md:hidden flex items-center space-x-3">
-                      <button
-                        className="w-12 h-12 rounded-full bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm flex items-center justify-center hover:from-white/30 hover:to-white/10 transition-all duration-300 flex-shrink-0"
-                        disabled={isLoading && currentTrack?.id === track.id}
+                    {/* Play Button */}
+                    <button
+                      onClick={() => playTrack(track)}
+                      className="w-12 h-12 rounded-full bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm flex items-center justify-center hover:from-white/30 hover:to-white/10 transition-all duration-300 flex-shrink-0 mr-3"
+                      disabled={isLoading && currentTrack?.id === track.id}
+                    >
+                      {isLoading && currentTrack?.id === track.id ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : currentTrack?.id === track.id && isPlaying ? (
+                        <Pause className="w-6 h-6 text-white" />
+                      ) : (
+                        <Play className="w-6 h-6 text-white" />
+                      )}
+                    </button>
+
+                    {/* Track Info */}
+                    <div className="flex-1 min-w-0 mr-3">
+                      <div
+                        className={`font-semibold text-sm md:text-base truncate ${
+                          currentTrack?.id === track.id
+                            ? "text-white"
+                            : "text-gray-100"
+                        } group-hover:text-white transition-colors`}
                       >
-                        {isLoading && currentTrack?.id === track.id ? (
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        ) : currentTrack?.id === track.id && isPlaying ? (
-                          <Pause className="w-6 h-6 text-white" />
-                        ) : (
-                          <Play className="w-6 h-6 text-white" />
-                        )}
-                      </button>
-
-                      <div className="flex-1 min-w-0">
-                        <div
-                          className={`font-semibold text-sm md:text-base truncate ${
-                            currentTrack?.id === track.id
-                              ? "text-white"
-                              : "text-gray-100"
-                          } group-hover:text-white transition-colors`}
-                        >
-                          {localizedTrack.title}
-                        </div>
-                        <div className="text-xs text-gray-400 flex items-center space-x-2">
-                          <span>{localizedTrack.artist}</span>
-                          <span>•</span>
-                          <span className="bg-gradient-to-r from-gray-600 to-gray-700 px-2 py-1 rounded-full text-xs font-medium text-white">
-                            {categories.find((c) => c.id === track.category)
-                              ?.name || track.category}
-                          </span>
-                        </div>
+                        {localizedTrack.title}
                       </div>
-
-                      <div className="text-xs text-gray-400 font-mono flex-shrink-0">
-                        {track.duration}
-                      </div>
-                    </div>
-
-                    {/* Desktop Layout */}
-                    <div className="hidden md:contents">
-                      <div className="col-span-1 flex items-center">
-                        <button
-                          className="w-10 h-10 rounded-full bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm flex items-center justify-center hover:from-white/30 hover:to-white/10 transition-all duration-300 hover:scale-110"
-                          disabled={isLoading && currentTrack?.id === track.id}
-                        >
-                          {isLoading && currentTrack?.id === track.id ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          ) : currentTrack?.id === track.id && isPlaying ? (
-                            <Pause className="w-5 h-5 text-white" />
-                          ) : (
-                            <Play className="w-5 h-5 text-white" />
-                          )}
-                        </button>
-                      </div>
-
-                      <div className="col-span-8 flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                          <Volume2 className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <div
-                            className={`font-semibold ${
-                              currentTrack?.id === track.id
-                                ? "text-white"
-                                : "text-gray-100"
-                            } group-hover:text-white transition-colors`}
-                          >
-                            {localizedTrack.title}
-                          </div>
-                          <div className="text-sm text-gray-400">
-                            {localizedTrack.artist}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="col-span-2 flex items-center">
-                        <span className="bg-gradient-to-r from-gray-600 to-gray-700 px-3 py-1 rounded-full text-xs font-medium text-white">
+                      <div className="text-xs text-gray-400 flex items-center space-x-2">
+                        <span className="bg-gradient-to-r from-gray-600 to-gray-700 px-2 py-1 rounded-full text-xs font-medium text-white">
                           {categories.find((c) => c.id === track.category)
                             ?.name || track.category}
                         </span>
                       </div>
+                    </div>
 
-                      <div className="col-span-1 flex items-center text-gray-400 font-mono text-sm">
-                        {track.duration}
-                      </div>
+                    {/* Duration */}
+                    <div className="text-xs text-gray-400 font-mono flex-shrink-0 mr-3">
+                      {track.duration}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center space-x-1 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(track.id);
+                        }}
+                        className={`p-2 rounded-full transition-all duration-300 ${
+                          isFavorited
+                            ? "text-red-400 hover:text-red-300"
+                            : "text-gray-400 hover:text-red-400"
+                        }`}
+                        title={
+                          isFavorited ? t.removeFromFavorites : t.addToFavorites
+                        }
+                      >
+                        <Heart
+                          className={`w-4 h-4 ${
+                            isFavorited ? "fill-current" : ""
+                          }`}
+                        />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTrackForPlaylist(track.id);
+                          setShowPlaylistModal(true);
+                        }}
+                        className="text-gray-400 hover:text-purple-400 p-2 rounded-full transition-colors"
+                        title={t.addToPlaylist}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+
+                      {currentPlaylist && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFromPlaylist(currentPlaylist, track.id);
+                          }}
+                          className="text-gray-400 hover:text-red-400 p-2 rounded-full transition-colors"
+                          title={t.removeFromPlaylist}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -925,10 +1474,72 @@ const SensoryAudioLibrary = () => {
         </div>
       </div>
 
+      {/* Playlist Modal */}
+      {showPlaylistModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-2xl max-w-md w-full max-h-96 overflow-hidden">
+            <div className="p-4 border-b border-gray-600">
+              <h3 className="text-lg font-semibold text-white">
+                {t.addToPlaylist}
+              </h3>
+            </div>
+            <div className="p-4 max-h-64 overflow-y-auto">
+              <div className="space-y-2">
+                {playlists
+                  .filter((p) => p.id !== "favorites")
+                  .map((playlist) => (
+                    <button
+                      key={playlist.id}
+                      onClick={() =>
+                        addToPlaylist(playlist.id, selectedTrackForPlaylist)
+                      }
+                      className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center space-x-3"
+                    >
+                      <List className="w-5 h-5 text-gray-300" />
+                      <div>
+                        <div className="text-white font-medium">
+                          {playlist.name}
+                        </div>
+                        <div className="text-gray-400 text-sm">
+                          {playlist.tracks.length} {t.tracks}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+
+                <button
+                  onClick={() => {
+                    setShowPlaylistModal(false);
+                    setShowCreatePlaylistModal(true);
+                  }}
+                  className="w-full text-left p-3 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors flex items-center space-x-3"
+                >
+                  <Plus className="w-5 h-5 text-white" />
+                  <div className="text-white font-medium">
+                    {t.createPlaylist}
+                  </div>
+                </button>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-600">
+              <button
+                onClick={() => {
+                  setShowPlaylistModal(false);
+                  setSelectedTrackForPlaylist(null);
+                }}
+                className="w-full bg-gray-600 hover:bg-gray-500 text-white py-2 rounded-lg transition-colors"
+              >
+                {t.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Player */}
       {currentTrack && (
         <div
-          className={`fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-gray-600 transition-all duration-300 ${
+          className={`fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-gray-600 transition-all duration-300 z-40 ${
             isPlayerMinimized ? "p-3 md:p-2" : "p-4"
           }`}
         >
@@ -959,7 +1570,9 @@ const SensoryAudioLibrary = () => {
                   <div className="font-medium text-white text-sm md:text-base truncate">
                     {getLocalizedTrack(currentTrack).title}
                   </div>
-                  <div className="text-xs text-gray-400 truncate">自然音</div>
+                  <div className="text-xs text-gray-400 truncate">
+                    {t.natural}
+                  </div>
                 </div>
               </div>
 
@@ -971,7 +1584,7 @@ const SensoryAudioLibrary = () => {
                       ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg"
                       : "bg-gray-600 text-gray-300 hover:bg-gray-500"
                   }`}
-                  title={isRepeating ? "リピートオン" : "リピートオフ"}
+                  title={isRepeating ? t.repeatOn : t.repeatOff}
                 >
                   <Repeat className="w-3 h-3 md:w-4 md:h-4" />
                 </button>
@@ -979,7 +1592,7 @@ const SensoryAudioLibrary = () => {
                 <button
                   onClick={skipToPrevious}
                   className="bg-gray-600 hover:bg-gray-500 text-white rounded-full p-2 transition-all duration-300 hover:scale-110"
-                  title="前の曲"
+                  title={t.previous}
                   disabled={filteredTracks.length <= 1}
                 >
                   <SkipBack className="w-3 h-3 md:w-4 md:h-4" />
@@ -1002,10 +1615,45 @@ const SensoryAudioLibrary = () => {
                 <button
                   onClick={skipToNext}
                   className="bg-gray-600 hover:bg-gray-500 text-white rounded-full p-2 transition-all duration-300 hover:scale-110"
-                  title="次の曲"
+                  title={t.next}
                   disabled={filteredTracks.length <= 1}
                 >
                   <SkipForward className="w-3 h-3 md:w-4 md:h-4" />
+                </button>
+                {/* ハート・プラスボタン */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(currentTrack.id);
+                  }}
+                  className={`p-2 rounded-full transition-all duration-300 ${
+                    favorites.has(currentTrack.id)
+                      ? "text-red-400 hover:text-red-300"
+                      : "text-gray-400 hover:text-red-400"
+                  }`}
+                  title={
+                    favorites.has(currentTrack.id)
+                      ? t.removeFromFavorites
+                      : t.addToFavorites
+                  }
+                >
+                  <Heart
+                    className={`w-3 h-3 md:w-4 md:h-4 ${
+                      favorites.has(currentTrack.id) ? "fill-current" : ""
+                    }`}
+                  />
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedTrackForPlaylist(currentTrack.id);
+                    setShowPlaylistModal(true);
+                  }}
+                  className="text-gray-400 hover:text-purple-400 p-2 rounded-full transition-colors"
+                  title={t.addToPlaylist}
+                >
+                  <Plus className="w-3 h-3 md:w-4 md:h-4" />
                 </button>
 
                 <button
@@ -1095,7 +1743,7 @@ const SensoryAudioLibrary = () => {
                           ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg"
                           : "bg-gray-600/50 text-gray-300 hover:bg-gray-500/50"
                       }`}
-                      title={isRepeating ? "リピートオン" : "リピートオフ"}
+                      title={isRepeating ? t.repeatOn : t.repeatOff}
                     >
                       <Repeat className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
@@ -1103,7 +1751,7 @@ const SensoryAudioLibrary = () => {
                     <button
                       onClick={skipToPrevious}
                       className="bg-gray-600/50 hover:bg-gray-500/50 text-white rounded-full p-2 transition-all duration-300 hover:scale-110"
-                      title="前の曲"
+                      title={t.previous}
                       disabled={filteredTracks.length <= 1}
                     >
                       <SkipBack className="w-4 h-4 md:w-5 md:h-5" />
@@ -1126,31 +1774,68 @@ const SensoryAudioLibrary = () => {
                     <button
                       onClick={skipToNext}
                       className="bg-gray-600/50 hover:bg-gray-500/50 text-white rounded-full p-2 transition-all duration-300 hover:scale-110"
-                      title="次の曲"
+                      title={t.next}
                       disabled={filteredTracks.length <= 1}
                     >
                       <SkipForward className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
+                    {/* ハート・プラスボタン */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(currentTrack.id);
+                      }}
+                      className={`p-2 rounded-full transition-all duration-300 hover:scale-110 ${
+                        favorites.has(currentTrack.id)
+                          ? "text-red-400 hover:text-red-300"
+                          : "text-gray-400 hover:text-red-400"
+                      }`}
+                      title={
+                        favorites.has(currentTrack.id)
+                          ? t.removeFromFavorites
+                          : t.addToFavorites
+                      }
+                    >
+                      <Heart
+                        className={`w-4 h-4 md:w-5 md:h-5 ${
+                          favorites.has(currentTrack.id) ? "fill-current" : ""
+                        }`}
+                      />
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTrackForPlaylist(currentTrack.id);
+                        setShowPlaylistModal(true);
+                      }}
+                      className="text-gray-400 hover:text-purple-400 p-2 rounded-full transition-colors hover:scale-110"
+                      title={t.addToPlaylist}
+                    >
+                      <Plus className="w-4 h-4 md:w-5 md:h-5" />
+                    </button>
                   </div>
 
-                  {/* Progress Bar */}
+                  {/* Progress Bar - ドラッグ・タッチ対応 */}
                   <div className="flex items-center space-x-3 w-full">
                     <span className="text-xs text-gray-400 font-mono">
                       {formatTime(currentTime)}
                     </span>
                     <div
-                      className="flex-1 bg-white/20 rounded-full h-2 cursor-pointer group"
-                      onClick={handleProgressClick}
+                      ref={progressRef}
+                      className="flex-1 bg-white/20 rounded-full h-3 cursor-pointer group relative"
+                      onMouseDown={handleProgressStart}
+                      onTouchStart={handleProgressStart}
                     >
                       <div
-                        className="bg-gradient-to-r from-white to-gray-200 rounded-full h-2 transition-all duration-150 relative group-hover:from-purple-400 group-hover:to-pink-400"
+                        className="bg-gradient-to-r from-white to-gray-200 rounded-full h-3 transition-all duration-150 relative group-hover:from-purple-400 group-hover:to-pink-400"
                         style={{
                           width: duration
                             ? `${(currentTime / duration) * 100}%`
                             : "0%",
                         }}
                       >
-                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1/2 w-4 h-4 md:w-5 md:h-5 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity border-2 border-gray-200"></div>
                       </div>
                     </div>
                     <span className="text-xs text-gray-400 font-mono">
@@ -1163,21 +1848,18 @@ const SensoryAudioLibrary = () => {
                 <div className="hidden md:flex items-center space-x-4 w-1/3 justify-end">
                   <div className="flex items-center space-x-3">
                     <Volume2 className="w-5 h-5 text-gray-400" />
-                    <div className="w-24 bg-white/20 rounded-full h-2 relative group cursor-pointer">
+                    <div
+                      className="w-24 bg-white/20 rounded-full h-2 relative group cursor-pointer"
+                      ref={volumeRef}
+                      onMouseDown={handleVolumeStart}
+                      onTouchStart={handleVolumeStart}
+                    >
                       <div
-                        className="bg-gradient-to-r from-white to-gray-200 rounded-full h-2 transition-all group-hover:from-purple-400 group-hover:to-pink-400"
+                        className="bg-gradient-to-r from-white to-gray-200 rounded-full h-2 transition-all group-hover:from-purple-400 group-hover:to-pink-400 relative"
                         style={{ width: `${volume}%` }}
                       >
-                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={volume}
-                        onChange={(e) => setVolume(parseInt(e.target.value))}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
                     </div>
                   </div>
                 </div>
